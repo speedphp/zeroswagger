@@ -1,4 +1,4 @@
-module github.com/SpeedPHP/zeroswagger
+module github.com/speedphp/zeroswagger
 
 go 1.22.5
 
