@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/zeromicro/go-zero/tools/goctl/api/parser"
 	"github.com/zeromicro/go-zero/tools/goctl/api/spec"
@@ -19,7 +20,43 @@ type Plugin struct {
 	Dir         string
 }
 
-func Generator(apiPath string, jsonPath string) error {
+type JsonPath struct {
+	JsonFile     string `json:"url"`
+	Name         string `json:"name"`
+	RealFileName string
+}
+
+func GenerateApi(docPath string, basePath string, tempDir string) []JsonPath {
+	if basePath == "" {
+		basePath = "."
+	}
+	exeDir := filepath.Dir(basePath)
+	files, _ := findFilesWithExt(exeDir, ".api")
+
+	if tempDir == "" {
+		tempDir = "./temp"
+	}
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	var resultMap []JsonPath
+	for _, apiPath := range files {
+		jsonFile := strings.ReplaceAll(apiPath, "/", "-") + ".json"
+		jsonPath := filepath.Join(tempDir, jsonFile)
+		if err := generator(apiPath, jsonPath); err != nil {
+			panic(err)
+		}
+		resultMap = append(resultMap, JsonPath{
+			JsonFile:     docPath + "/api-" + jsonFile,
+			Name:         apiPath,
+			RealFileName: jsonFile,
+		})
+	}
+	return resultMap
+}
+
+func generator(apiPath string, jsonPath string) error {
 	apiFilePath, _ := filepath.Abs(apiPath)
 	jsonFilePath, _ := filepath.Abs(jsonPath)
 	dir := filepath.Dir(jsonFilePath)
@@ -75,4 +112,21 @@ func prepareArgs(apiPath string, dir string, style string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func findFilesWithExt(rootDir, ext string) ([]string, error) {
+	var result []string
+	err := filepath.WalkDir(rootDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && filepath.Ext(path) == ext {
+			result = append(result, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
