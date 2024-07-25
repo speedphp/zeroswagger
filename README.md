@@ -5,7 +5,7 @@
 ## 使用方法
 
 ```
-import "github.com/SpeedPHP/zeroswagger"
+import "github.com/speedphp/zeroswagger"
 
 func main() {
 	flag.Parse()
